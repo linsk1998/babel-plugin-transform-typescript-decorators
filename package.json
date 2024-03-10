@@ -1,0 +1,44 @@
+{
+	"name": "babel-plugin-transform-typescript-decorators",
+	"version": "0.0.0",
+	"description": "Compatible typescript decorators (with parameter decorators).",
+	"main": "dist/index.js",
+	"scripts": {
+		"watch": "tsc -watch",
+		"test": "node test.js"
+	},
+	"keywords": [
+		"babel",
+		"typescript",
+		"decorators",
+		"experimental",
+		"legacy",
+		"param"
+	],
+	"author": "linsk",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/linsk1998/babel-plugin-transform-typescript-decorators.git"
+	},
+	"bugs": {
+		"url": "https://github.com/linsk1998/babel-plugin-transform-typescript-decorators/issues"
+	},
+	"homepage": "https://github.com/linsk1998/babel-plugin-transform-typescript-decorators#readme",
+	"files": [
+		"dist"
+	],
+	"devDependencies": {
+		"@babel/core": "^7.18.13",
+		"@babel/helper-plugin-test-runner": "^7.10.1",
+		"@types/babel__core": "^7.1.19",
+		"@types/babel__helper-plugin-utils": "^7.10.0",
+		"@types/babel__template": "^7.4.1",
+		"@types/babel__traverse": "^7.18.1",
+		"tslib": "^2.6.2",
+		"typescript": "^4.8.2"
+	},
+	"dependencies": {
+		"@babel/helper-plugin-utils": "^7.10.1"
+	}
+}
