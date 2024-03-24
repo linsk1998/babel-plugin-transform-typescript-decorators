@@ -9,7 +9,7 @@ specifiers:
   '@types/babel__template': ^7.4.1
   '@types/babel__traverse': ^7.18.1
   tslib: ^2.6.2
-  typescript: ^4.8.2
+  typescript: ~4.3.0
 
 dependencies:
   '@babel/helper-plugin-utils': 7.19.0
@@ -22,7 +22,7 @@ devDependencies:
   '@types/babel__template': 7.4.1
   '@types/babel__traverse': 7.18.1
   tslib: 2.6.2
-  typescript: 4.8.2
+  typescript: 4.3.5
 
 packages:
 
@@ -817,8 +817,8 @@ packages:
     resolution: {integrity: sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==}
     dev: true
 
-  /typescript/4.8.2:
-    resolution: {integrity: sha512-C0I1UsrrDHo2fYI5oaCGbSejwX4ch+9Y5jTQELvovfmFkK3HHSZJB8MSJcWLmCUBzQBchCrZ9rMRV6GuNrvGtw==}
+  /typescript/4.3.5:
+    resolution: {integrity: sha512-DqQgihaQ9cUrskJo9kIyW/+g0Vxsk8cDtZ52a3NGh0YNTfpUSArXSohyUGnvbPazEPLu398C0UxmKSOrPumUzA==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true

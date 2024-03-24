@@ -1,7 +1,11 @@
 {
 	"plugins": [
 		[
-			"./dist/index.js"
+			"./dist/index.js",
+			{
+				"metadata": true,
+				"loose": true
+			}
 		]
 	]
 }

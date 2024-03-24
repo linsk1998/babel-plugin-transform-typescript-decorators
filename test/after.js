@@ -1,5 +1,5 @@
-import { __param } from "tslib";
-import { __decorate } from "tslib";
+import { __esDecorate } from "tslib";
+import { __setFunctionName } from "tslib";
 
 function ClassDe(Clazz) {
   return Clazz;
@@ -19,46 +19,29 @@ function MethodDe(target, prop) {}
 
 function ParamDe(target, prop, index) {}
 
-let A = class A {
-  propa;
-  propinit = 1;
-  static staticprop = 1;
+let A = class A {};
+let _className = "A";
+let _classDecorators = [ClassDe, ClassDe2];
 
-  get acc() {
-    return 1;
-  }
+let _classDescriptor;
 
-  set acc(val) {}
+let _classExtraInitializers = [];
 
-  me() {}
+__setFunctionName(A, _className);
 
-  me2(a1) {}
+const _metadata = Object.create(null);
 
-  static staticme() {}
+__esDecorate(null, _classDescriptor = {
+  value: A
+}, _classDecorators, _classDescriptor = {
+  kind: "class",
+  name: _className,
+  metadata: _metadata
+}, null, _classExtraInitializers);
 
-};
+_className = _classDescriptor.value;
+A[Symbol.metadata] = _metadata;
 
-__decorate([PropDe, PropDe2], A.prototype, "propa", void 0);
+__runInitializers(A, _classExtraInitializers);
 
-__decorate([PropDe], A.prototype, "propinit", void 0);
-
-__decorate([AccDe], A.prototype, "acc", null);
-
-__decorate([MethodDe], A.prototype, "me", null);
-
-__decorate([MethodDe, __param(0, ParamDe)], A.prototype, "me2", null);
-
-__decorate([PropDe], A, "staticprop", void 0);
-
-__decorate([MethodDe], A, "staticme", null);
-
-A = __decorate([ClassDe, ClassDe2], A);
 export { A };
-let B = class B {};
-B = __decorate([ClassDe], B);
-export { B };
-
-let _default = class {};
-
-_default = __decorate([ClassDe], _default);
-export { _default };

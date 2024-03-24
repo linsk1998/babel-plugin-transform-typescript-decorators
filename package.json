@@ -36,7 +36,7 @@
 		"@types/babel__template": "^7.4.1",
 		"@types/babel__traverse": "^7.18.1",
 		"tslib": "^2.6.2",
-		"typescript": "^4.8.2"
+		"typescript": "~4.3.0"
 	},
 	"dependencies": {
 		"@babel/helper-plugin-utils": "^7.10.1"
