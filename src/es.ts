@@ -66,62 +66,6 @@ function hasDecorators(node: t.ClassDeclaration): 0 | 1 | 2 {
 	return hasParamDec ? 2 : (hasDec ? 1 : 0);
 }
 
-function decoratedProperty(node: t.ClassProperty, className: string, decorateName: string) {
-	let key = node.key;
-	if(!t.isIdentifier(key)) return;
-
-	let decorators = node.decorators || [];
-	node.decorators = null;
-	if(decorators.length === 0) return;
-
-	return t.expressionStatement(
-		t.callExpression(t.identifier(decorateName), [
-			t.arrayExpression(
-				decorators.map(dec => t.cloneNode(dec.expression)),
-			),
-			node.static ?
-				t.identifier(className) :
-				t.memberExpression(t.identifier(className), t.identifier("prototype")),
-			t.stringLiteral(key.name),
-			t.unaryExpression("void", t.numericLiteral(0))
-		])
-	);
-}
-function decoratedMethod(node: t.ClassMethod, className: string, decorateName: string, paramDecorateName: string) {
-	let key = node.key;
-	if(!t.isIdentifier(key)) return;
-
-	let decorators = node.decorators || [];
-	node.decorators = null;
-
-	let exps: t.Expression[] = decorators.map(dec => t.cloneNode(dec.expression));
-	node.params.forEach((param, index) => {
-		let decorators = param.decorators || [];
-		param.decorators = null;
-		if(decorators.length) {
-			decorators.forEach((dec) => {
-				exps.push(
-					t.callExpression(
-						t.identifier(paramDecorateName),
-						[t.numericLiteral(index), t.cloneNode(dec.expression)]
-					)
-				);
-			});
-		}
-	});
-	if(exps.length) {
-		return t.expressionStatement(
-			t.callExpression(t.identifier(decorateName), [
-				t.arrayExpression(exps),
-				node.static ?
-					t.identifier(className) :
-					t.memberExpression(t.identifier(className), t.identifier("prototype")),
-				t.stringLiteral(key.name),
-				t.nullLiteral()
-			])
-		);
-	}
-}
 
 function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: string, className: string, options: Record<string, any>)
 	: (t.ExpressionStatement | t.VariableDeclaration | t.ExportNamedDeclaration)[] {
@@ -133,10 +77,11 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 	const decorators = node.decorators || [];
 	node.decorators = null;
 
-	const r: (t.ExpressionStatement | t.VariableDeclaration | t.ExportNamedDeclaration)[] = [];
+	const before: (t.ExpressionStatement | t.VariableDeclaration | t.ExportNamedDeclaration)[] = [];
+	const after: t.Statement[] = [];
 
 	let classNameId = path.scope.generateUid("className");
-	r.push(t.variableDeclaration("let", [
+	before.push(t.variableDeclaration("let", [
 		t.variableDeclarator(t.identifier(classNameId), t.stringLiteral(className))
 	]));
 
@@ -148,7 +93,7 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 		classDescriptorId = path.scope.generateUid("classDescriptor");
 		classExtraInitializersId = path.scope.generateUid("classExtraInitializers");
 		// classThisId = path.scope.generateUid("classThis");
-		r.push(
+		before.push(
 			t.variableDeclaration("let", [
 				t.variableDeclarator(t.identifier(classDecoratorsId), t.arrayExpression(decorators.map(dec => dec.expression)))
 			]),
@@ -163,22 +108,140 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 			// ])
 		);
 	}
-	r.push(t.expressionStatement(t.callExpression(t.identifier(setFunctionName), [t.identifier(classId), t.identifier(classNameId)])));
+	let member_size = node.body.body.length;
+	let member_decorators_ids: string[] = new Array(member_size);
+	let member_initializers_ids: string[] = new Array(member_size);
+	let member_extraInitializers_ids: string[] = new Array(member_size);
+	node.body.body.forEach((member, index) => {
+		let member_decorators_id: string;
+		let member_initializers_id: string;
+		let member_extraInitializers_id: string;
+		if(t.isClassProperty(member)) {
+			if(!member.static) {
+				if(member.computed) {
+					member_decorators_id = path.scope.generateUid("member_decorators");
+					member_initializers_id = path.scope.generateUid("member_initializers");
+					member_extraInitializers_id = path.scope.generateUid("member_extraInitializers");
+				} else if(t.isIdentifier(member.key)) {
+					let key: t.Identifier = member.key;
+					member_decorators_id = path.scope.generateUid(key.name + "_decorators");
+					member_initializers_id = path.scope.generateUid(key.name + "_initializers");
+					member_extraInitializers_id = path.scope.generateUid(key.name + "_extraInitializers");
+				} else {
+					console.error(member.key);
+				}
+				before.push(
+					t.variableDeclaration("let", [
+						t.variableDeclarator(t.identifier(member_decorators_id))
+					]),
+					t.variableDeclaration("let", [
+						t.variableDeclarator(t.identifier(member_initializers_id), t.arrayExpression())
+					]),
+					t.variableDeclaration("let", [
+						t.variableDeclarator(t.identifier(member_extraInitializers_id), t.arrayExpression())
+					]),
+				);
+				member_decorators_ids[index] = member_decorators_id;
+				member_initializers_ids[index] = member_initializers_id;
+				member_extraInitializers_ids[index] = member_extraInitializers_id;
+			}
+		}
+	});
+	// after.push(t.expressionStatement(t.callExpression(t.identifier(setFunctionName), [t.identifier(classId), t.identifier(classNameId)])));
 	let metadataId: string;
 	if(metadata !== false) {
 		metadataId = path.scope.generateUid("metadata");
 	}
 	if(metadata === true) {
 		// const _metadata = Object.create(null);
-		r.push(t.variableDeclaration("const", [
+		after.push(t.variableDeclaration("const", [
 			t.variableDeclarator(t.identifier(metadataId), t.callExpression(
 				t.memberExpression(t.identifier("Object"), t.identifier("create")),
 				[t.nullLiteral()]
 			))
 		]));
-	}
+	} node.body.body.forEach((member, index, array) => {
+		let member_decorators_id: string = member_decorators_ids[index];
+		let member_initializers_id: string = member_initializers_ids[index];
+		let member_extraInitializers_id: string = member_extraInitializers_ids[index];
+		if(t.isClassProperty(member)) {
+			if(!member.static) {
+				let key: t.Identifier;
+				let keyAttr: t.StringLiteral;
+				if(member.computed) {
+					key = t.identifier("_a");
+				} else if(t.isIdentifier(member.key)) {
+					key = t.cloneNode(member.key);
+					keyAttr = t.stringLiteral(member.key.name);
+				} else {
+					console.error(member.key);
+				}
+				after.push(
+					t.expressionStatement(t.callExpression(
+						t.identifier(esDecorate),
+						[
+							t.nullLiteral(),
+							t.nullLiteral(),
+							t.identifier(member_decorators_id),
+							t.objectExpression([
+								t.objectProperty(t.identifier("kind"), t.stringLiteral("field")),
+								t.objectProperty(t.identifier("name"), key),
+								t.objectProperty(t.identifier("static"), t.booleanLiteral(false)),
+								t.objectProperty(t.identifier("private"), t.booleanLiteral(false)),
+								t.objectProperty(
+									t.identifier("access"),
+									member.computed ?
+										t.objectExpression([
+											t.objectProperty(
+												t.identifier("has"),
+												t.arrowFunctionExpression([t.identifier("obj")], t.binaryExpression("in", key, t.identifier("obj")))
+											),
+											t.objectProperty(
+												t.identifier("get"),
+												t.arrowFunctionExpression([t.identifier("obj")], t.memberExpression(t.identifier("obj"), key, true))
+											),
+											t.objectProperty(
+												t.identifier("set"),
+												t.arrowFunctionExpression([t.identifier("obj"), t.identifier("value")], t.blockStatement([
+													t.expressionStatement(
+														t.assignmentExpression("=", t.memberExpression(t.identifier("obj"), key, true), t.identifier("value"))
+													)
+												]))
+											)
+										]) :
+										t.objectExpression([
+											t.objectProperty(
+												t.identifier("has"),
+												t.arrowFunctionExpression([t.identifier("obj")], t.binaryExpression("in", keyAttr, t.identifier("obj")))
+											),
+											t.objectProperty(
+												t.identifier("get"),
+												t.arrowFunctionExpression([t.identifier("obj")], t.memberExpression(t.identifier("obj"), key))
+											),
+											t.objectProperty(
+												t.identifier("set"),
+												t.arrowFunctionExpression([t.identifier("obj"), t.identifier("value")], t.blockStatement([
+													t.expressionStatement(
+														t.assignmentExpression("=", t.memberExpression(t.identifier("obj"), key), t.identifier("value"))
+													)
+												]))
+											)
+										])
+								),
+								...metadata !== false ?
+									[t.objectProperty(t.identifier("metadata"), t.identifier(metadataId))] :
+									[]
+							]),
+							t.identifier(member_initializers_id),
+							t.identifier(member_extraInitializers_id)
+						]
+					))
+				);
+			}
+		}
+	});
 	if(decorators) {
-		r.push(
+		after.push(
 			t.expressionStatement(t.callExpression(
 				t.identifier(esDecorate),
 				[
@@ -191,17 +254,13 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 						])
 					),
 					t.identifier(classDecoratorsId),
-					t.assignmentExpression(
-						"=",
-						t.identifier(classDescriptorId),
-						t.objectExpression([
-							t.objectProperty(t.identifier("kind"), t.stringLiteral("class")),
-							t.objectProperty(t.identifier("name"), t.identifier(classNameId)),
-							...metadata !== false ?
-								[t.objectProperty(t.identifier("metadata"), t.identifier(metadataId))] :
-								[]
-						])
-					),
+					t.objectExpression([
+						t.objectProperty(t.identifier("kind"), t.stringLiteral("class")),
+						t.objectProperty(t.identifier("name"), t.identifier(classNameId)),
+						...metadata !== false ?
+							[t.objectProperty(t.identifier("metadata"), t.identifier(metadataId))] :
+							[]
+					]),
 					t.nullLiteral(),
 					t.identifier(classExtraInitializersId)
 				]
@@ -213,7 +272,7 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 			))
 		);
 		if(metadata) {
-			r.push(
+			after.push(
 				loose ?
 					t.expressionStatement(t.assignmentExpression(
 						"=",
@@ -235,7 +294,7 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 					))
 			);
 		}
-		r.push(
+		after.push(
 			t.expressionStatement(t.callExpression(
 				t.identifier("__runInitializers"),
 				[
@@ -245,7 +304,10 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 			))
 		);
 	}
-	return r;
+	node.body.body.unshift(
+		t.staticBlock(after)
+	);
+	return before;
 }
 
 export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
@@ -280,6 +342,7 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 						classId = path.scope.generateUid("_classThis");
 					}
 					path.replaceWithMultiple([
+						...decoratedClass(path, declaration, classId, classId, options),
 						t.variableDeclaration("let",
 							[t.variableDeclarator(
 								t.identifier(classId),
@@ -290,7 +353,6 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 								)
 							)]
 						),
-						...decoratedClass(path, declaration, classId, classId, options),
 						t.exportNamedDeclaration(null, [t.exportSpecifier(t.identifier(classId), t.identifier(classId))])
 					]);
 				}
@@ -306,6 +368,7 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 
 					let classId = declaration.id.name;
 					path.replaceWithMultiple([
+						...decoratedClass(path, declaration, classId, classId, options),
 						t.variableDeclaration("let",
 							[t.variableDeclarator(
 								t.identifier(classId),
@@ -316,7 +379,6 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 								)
 							)]
 						),
-						...decoratedClass(path, declaration, classId, classId, options),
 						t.exportNamedDeclaration(null, [t.exportSpecifier(t.identifier(classId), t.identifier(classId))])
 					]);
 				}
@@ -329,9 +391,10 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 				}
 
 				let classId = node.id.name;
+				// node = t.cloneNode(node);
 				path.replaceWithMultiple([
+					...decoratedClass(path, node, classId, classId, options),
 					node,
-					...decoratedClass(path, node, classId, classId, options)
 				]);
 			}
 		},

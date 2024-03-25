@@ -19,7 +19,7 @@ function MethodDe(target, prop) {}
 
 function ParamDe(target, prop, index) {}
 
-let A = class A {};
+let propa = "propa";
 let _className = "A";
 let _classDecorators = [ClassDe, ClassDe2];
 
@@ -27,21 +27,44 @@ let _classDescriptor;
 
 let _classExtraInitializers = [];
 
-__setFunctionName(A, _className);
+let _propb_decorators;
 
-const _metadata = Object.create(null);
+let _propb_initializers = [];
+let _propb_extraInitializers = [];
+let A = class A {
+  static {
+    const _metadata = Object.create(null);
 
-__esDecorate(null, _classDescriptor = {
-  value: A
-}, _classDecorators, _classDescriptor = {
-  kind: "class",
-  name: _className,
-  metadata: _metadata
-}, null, _classExtraInitializers);
+    __esDecorate(null, null, _propb_decorators, {
+      kind: "field",
+      name: propb,
+      static: false,
+      private: false,
+      access: {
+        has: obj => "propb" in obj,
+        get: obj => obj.propb,
+        set: (obj, value) => {
+          obj.propb = value;
+        }
+      },
+      metadata: _metadata
+    }, _propb_initializers, _propb_extraInitializers);
 
-_className = _classDescriptor.value;
-A[Symbol.metadata] = _metadata;
+    __esDecorate(null, _classDescriptor = {
+      value: A
+    }, _classDecorators, {
+      kind: "class",
+      name: _className,
+      metadata: _metadata
+    }, null, _classExtraInitializers);
 
-__runInitializers(A, _classExtraInitializers);
+    _className = _classDescriptor.value;
+    A[Symbol.metadata] = _metadata;
 
+    __runInitializers(A, _classExtraInitializers);
+
+  }
+  @PropDe
+  propb;
+};
 export { A };

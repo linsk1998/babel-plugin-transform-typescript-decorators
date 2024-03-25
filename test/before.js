@@ -15,9 +15,12 @@ function MethodDe(target, prop) {
 }
 function ParamDe(target, prop, index) {
 }
+let propa = "propa";
 
 @ClassDe
-@ClassDe2
-export class A {
-
+class Cat {
+	@PropDe
+	propb;
+	@PropDe
+	[propa];
 }
