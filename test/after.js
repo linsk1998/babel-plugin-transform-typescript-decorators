@@ -1,3 +1,4 @@
+import { __runInitializers } from "tslib";
 import { __esDecorate } from "tslib";
 import { __setFunctionName } from "tslib";
 
@@ -20,8 +21,8 @@ function MethodDe(target, prop) {}
 function ParamDe(target, prop, index) {}
 
 let propa = "propa";
-let _className = "A";
-let _classDecorators = [ClassDe, ClassDe2];
+let _className = "Cat";
+let _classDecorators = [ClassDe];
 
 let _classDescriptor;
 
@@ -31,9 +32,12 @@ let _propb_decorators;
 
 let _propb_initializers = [];
 let _propb_extraInitializers = [];
-let A = class A {
+
+class Cat {
   static {
     const _metadata = Object.create(null);
+
+    _propb_decorators = [PropDe];
 
     __esDecorate(null, null, _propb_decorators, {
       kind: "field",
@@ -51,7 +55,7 @@ let A = class A {
     }, _propb_initializers, _propb_extraInitializers);
 
     __esDecorate(null, _classDescriptor = {
-      value: A
+      value: Cat
     }, _classDecorators, {
       kind: "class",
       name: _className,
@@ -59,12 +63,16 @@ let A = class A {
     }, null, _classExtraInitializers);
 
     _className = _classDescriptor.value;
-    A[Symbol.metadata] = _metadata;
+    Cat[Symbol.metadata] = _metadata;
 
-    __runInitializers(A, _classExtraInitializers);
+    __runInitializers(Cat, _classExtraInitializers);
 
   }
-  @PropDe
-  propb;
-};
-export { A };
+
+  constructor() {
+    this.propb = __runInitializers(this, _propb_initializers, void 0);
+
+    __runInitializers(this, _propb_extraInitializers);
+  }
+
+}

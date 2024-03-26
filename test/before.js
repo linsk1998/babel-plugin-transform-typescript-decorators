@@ -21,6 +21,4 @@ let propa = "propa";
 class Cat {
 	@PropDe
 	propb;
-	@PropDe
-	[propa];
 }
