@@ -4,7 +4,8 @@
 			"./dist/index.js",
 			{
 				"metadata": true,
-				"loose": true
+				"loose": true,
+				"useDefineForClassFields": true
 			}
 		]
 	]

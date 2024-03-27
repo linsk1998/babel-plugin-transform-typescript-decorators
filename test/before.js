@@ -19,6 +19,8 @@ let propa = "propa";
 
 @ClassDe
 class Cat {
+	propa = 1;
 	@PropDe
 	propb;
+	propc;
 }

@@ -325,62 +325,92 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 		let member_extraInitializers_id: string = member_extraInitializers_ids[index];
 		if(t.isClassProperty(member)) {
 			if(member.static) return;
+			if(member.computed) return;
 			let decorators = member.decorators || [];
 			member.decorators = null;
-			if(decorators.length === 0) {
-				return;
+			let key = t.cloneNode(member.key);
+			let value = t.cloneNode(member.value);
+			let keyId: string;
+			if(t.isIdentifier(member.key)) {
+				keyId = member.key.name;
 			}
-			if(!member.computed) {
-				if(t.isIdentifier(member.key)) {
-					let key = member.key.name;
-					let value = member.value;
-					if(useDefineForClassFields) {
-						initializers.push(
-							t.expressionStatement(
-								t.callExpression(
-									t.memberExpression(t.identifier("Object"), t.identifier("defineProperty")),
-									[
-										t.thisExpression(),
-										t.stringLiteral(key),
-										t.objectExpression([
-											t.objectProperty(t.identifier("enumerable"), t.booleanLiteral(true)),
-											t.objectProperty(t.identifier("configurable"), t.booleanLiteral(true)),
-											t.objectProperty(t.identifier("writable"), t.booleanLiteral(true)),
-											t.objectProperty(t.identifier("value"), t.callExpression(t.identifier(runInitializers), [
-												t.thisExpression(),
-												t.identifier(member_initializers_id),
-												value || t.unaryExpression("void", t.numericLiteral(0))
-											]))
-										])
-									]
-								)
-							)
-						);
-					} else {
-						initializers.push(
-							t.expressionStatement(
-								t.assignmentExpression(
-									"=",
-									t.memberExpression(t.thisExpression(), t.identifier(key)),
-									t.callExpression(t.identifier(runInitializers), [
-										t.thisExpression(),
-										t.identifier(member_initializers_id),
-										value || t.unaryExpression("void", t.numericLiteral(0))
-									])
-								)
-							)
-						);
-					}
+			if(decorators.length === 0) {
+				if(useDefineForClassFields && keyId) {
 					initializers.push(
 						t.expressionStatement(
-							t.callExpression(t.identifier(runInitializers), [
-								t.thisExpression(),
-								t.identifier(member_extraInitializers_id)
-							])
+							t.callExpression(
+								t.memberExpression(t.identifier("Object"), t.identifier("defineProperty")),
+								[
+									t.thisExpression(),
+									t.stringLiteral(keyId),
+									t.objectExpression([
+										t.objectProperty(t.identifier("enumerable"), t.booleanLiteral(true)),
+										t.objectProperty(t.identifier("configurable"), t.booleanLiteral(true)),
+										t.objectProperty(t.identifier("writable"), t.booleanLiteral(true)),
+										t.objectProperty(t.identifier("value"), value || t.unaryExpression("void", t.numericLiteral(0)))
+									])
+								]
+							)
+						)
+					);
+				} else if(value) {
+					initializers.push(
+						t.expressionStatement(
+							t.assignmentExpression(
+								"=",
+								t.memberExpression(t.thisExpression(), key),
+								value
+							)
 						)
 					);
 				}
+				return;
 			}
+			if(useDefineForClassFields && keyId) {
+				initializers.push(
+					t.expressionStatement(
+						t.callExpression(
+							t.memberExpression(t.identifier("Object"), t.identifier("defineProperty")),
+							[
+								t.thisExpression(),
+								t.stringLiteral(keyId),
+								t.objectExpression([
+									t.objectProperty(t.identifier("enumerable"), t.booleanLiteral(true)),
+									t.objectProperty(t.identifier("configurable"), t.booleanLiteral(true)),
+									t.objectProperty(t.identifier("writable"), t.booleanLiteral(true)),
+									t.objectProperty(t.identifier("value"), t.callExpression(t.identifier(runInitializers), [
+										t.thisExpression(),
+										t.identifier(member_initializers_id),
+										value || t.unaryExpression("void", t.numericLiteral(0))
+									]))
+								])
+							]
+						)
+					)
+				);
+			} else {
+				initializers.push(
+					t.expressionStatement(
+						t.assignmentExpression(
+							"=",
+							t.memberExpression(t.thisExpression(), key),
+							t.callExpression(t.identifier(runInitializers), [
+								t.thisExpression(),
+								t.identifier(member_initializers_id),
+								value || t.unaryExpression("void", t.numericLiteral(0))
+							])
+						)
+					)
+				);
+			}
+			initializers.push(
+				t.expressionStatement(
+					t.callExpression(t.identifier(runInitializers), [
+						t.thisExpression(),
+						t.identifier(member_extraInitializers_id)
+					])
+				)
+			);
 		}
 	});
 	if(initializers.length) {

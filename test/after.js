@@ -70,9 +70,27 @@ class Cat {
   }
 
   constructor() {
-    this.propb = __runInitializers(this, _propb_initializers, void 0);
+    Object.defineProperty(this, "propa", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: 1
+    });
+    Object.defineProperty(this, "propb", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: __runInitializers(this, _propb_initializers, void 0)
+    });
 
     __runInitializers(this, _propb_extraInitializers);
+
+    Object.defineProperty(this, "propc", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
   }
 
 }
