@@ -116,12 +116,28 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 			]),
 			t.variableDeclaration("let", [
 				t.variableDeclarator(t.identifier(classExtraInitializersId), t.arrayExpression())
-			]),
-			// t.variableDeclaration("let", [
-			// 	t.variableDeclarator(t.identifier(classThisId))
-			// ])
+			])
 		);
 	}
+	let instanceExtraInitializers_id: string;
+	node.body.body.some((member, index) => {
+		if(t.isClassMethod(member)) {
+			if(member.static) return;
+			if(member.computed) return;
+			let decorators = member.decorators || [];
+			if(decorators.length === 0) return;
+			if(!t.isIdentifier(member.key)) return;
+			if(member.kind == "constructor") return;
+			instanceExtraInitializers_id = path.scope.generateUid("instanceExtraInitializers");
+			before.push(
+				t.variableDeclaration("let", [
+					t.variableDeclarator(t.identifier(instanceExtraInitializers_id), t.arrayExpression())
+				])
+			);
+			return true;
+		}
+		return false;
+	});
 	let member_size = node.body.body.length;
 	let member_decorators_ids: string[] = new Array(member_size);
 	let member_initializers_ids: string[] = new Array(member_size);
@@ -130,31 +146,47 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 		let member_decorators_id: string;
 		let member_initializers_id: string;
 		let member_extraInitializers_id: string;
-		if(t.isClassProperty(member)) {
+		if(t.isClassMethod(member)) {
+			if(member.static) return;
+			if(member.computed) return;
 			let decorators = member.decorators || [];
 			if(decorators.length === 0) return;
-			if(!member.static && !member.computed) {
-				if(t.isIdentifier(member.key)) {
-					let key: t.Identifier = member.key;
-					member_decorators_id = path.scope.generateUid(key.name + "_decorators");
-					member_initializers_id = path.scope.generateUid(key.name + "_initializers");
-					member_extraInitializers_id = path.scope.generateUid(key.name + "_extraInitializers");
-					before.push(
-						t.variableDeclaration("let", [
-							t.variableDeclarator(t.identifier(member_decorators_id))
-						]),
-						t.variableDeclaration("let", [
-							t.variableDeclarator(t.identifier(member_initializers_id), t.arrayExpression())
-						]),
-						t.variableDeclaration("let", [
-							t.variableDeclarator(t.identifier(member_extraInitializers_id), t.arrayExpression())
-						]),
-					);
-					member_decorators_ids[index] = member_decorators_id;
-					member_initializers_ids[index] = member_initializers_id;
-					member_extraInitializers_ids[index] = member_extraInitializers_id;
-				}
-			}
+			if(!t.isIdentifier(member.key)) return;
+			if(member.kind == "constructor") return;
+			let keyId = member.key.name;
+			member_decorators_id = path.scope.generateUid(member.kind + "_" + keyId + "_decorators");
+			before.push(
+				t.variableDeclaration("let", [
+					t.variableDeclarator(t.identifier(member_decorators_id))
+				])
+			);
+			member_decorators_ids[index] = member_decorators_id;
+			member_initializers_ids[index] = member_initializers_id;
+			member_extraInitializers_ids[index] = member_extraInitializers_id;
+		} else if(t.isClassProperty(member)) {
+			if(member.static) return;
+			if(member.computed) return;
+			let decorators = member.decorators || [];
+			if(decorators.length === 0) return;
+			if(!t.isIdentifier(member.key)) return;
+			let keyId = member.key.name;
+			member_decorators_id = path.scope.generateUid(keyId + "_decorators");
+			member_initializers_id = path.scope.generateUid(keyId + "_initializers");
+			member_extraInitializers_id = path.scope.generateUid(keyId + "_extraInitializers");
+			before.push(
+				t.variableDeclaration("let", [
+					t.variableDeclarator(t.identifier(member_decorators_id))
+				]),
+				t.variableDeclaration("let", [
+					t.variableDeclarator(t.identifier(member_initializers_id), t.arrayExpression())
+				]),
+				t.variableDeclaration("let", [
+					t.variableDeclarator(t.identifier(member_extraInitializers_id), t.arrayExpression())
+				]),
+			);
+			member_decorators_ids[index] = member_decorators_id;
+			member_initializers_ids[index] = member_initializers_id;
+			member_extraInitializers_ids[index] = member_extraInitializers_id;
 		}
 	});
 	// after.push(t.expressionStatement(t.callExpression(t.identifier(setFunctionName), [t.identifier(classId), t.identifier(classNameId)])));
@@ -198,59 +230,113 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 	});
 	node.body.body.forEach((member, index, array) => {
 		let member_decorators_id: string = member_decorators_ids[index];
+		if(t.isClassMethod(member)) {
+			if(member.static) return;
+			if(member.computed) return;
+			let decorators = member.decorators || [];
+			if(decorators.length === 0) return;
+			if(member.kind == "constructor") return;
+			if(!t.isIdentifier(member.key)) return;
+			let key = t.cloneNode(member.key);
+			let keyAttr = t.stringLiteral(member.key.name);
+			after.push(
+				t.expressionStatement(t.callExpression(
+					t.identifier(esDecorate),
+					[
+						t.nullLiteral(),
+						t.nullLiteral(),
+						t.identifier(member_decorators_id),
+						t.objectExpression([
+							t.objectProperty(t.identifier("kind"), t.stringLiteral(member.kind == "method" ? "method" : (member.kind + "ter"))),
+							t.objectProperty(t.identifier("name"), key),
+							t.objectProperty(t.identifier("static"), t.booleanLiteral(false)),
+							t.objectProperty(t.identifier("private"), t.booleanLiteral(false)),
+							t.objectProperty(
+								t.identifier("access"),
+								t.objectExpression([
+									t.objectProperty(
+										t.identifier("has"),
+										t.arrowFunctionExpression([t.identifier("obj")], t.binaryExpression("in", keyAttr, t.identifier("obj")))
+									),
+									t.objectProperty(
+										t.identifier("get"),
+										t.arrowFunctionExpression([t.identifier("obj")], t.memberExpression(t.identifier("obj"), key))
+									),
+									t.objectProperty(
+										t.identifier("set"),
+										t.arrowFunctionExpression([t.identifier("obj"), t.identifier("value")], t.blockStatement([
+											t.expressionStatement(
+												t.assignmentExpression("=", t.memberExpression(t.identifier("obj"), key), t.identifier("value"))
+											)
+										]))
+									)
+								])
+							),
+							...metadata !== false ?
+								[t.objectProperty(t.identifier("metadata"), t.identifier(metadataId))] :
+								[]
+						]),
+						t.nullLiteral(),
+						t.identifier(instanceExtraInitializers_id)
+					]
+				))
+			);
+		}
+	});
+	node.body.body.forEach((member, index, array) => {
+		let member_decorators_id: string = member_decorators_ids[index];
 		let member_initializers_id: string = member_initializers_ids[index];
 		let member_extraInitializers_id: string = member_extraInitializers_ids[index];
 		if(t.isClassProperty(member)) {
+			if(member.static) return;
+			if(member.computed) return;
 			let decorators = member.decorators || [];
 			if(decorators.length === 0) return;
-			if(!member.static && !member.computed) {
-				if(t.isIdentifier(member.key)) {
-					let key = t.cloneNode(member.key);
-					let keyAttr = t.stringLiteral(member.key.name);
-					after.push(
-						t.expressionStatement(t.callExpression(
-							t.identifier(esDecorate),
-							[
-								t.nullLiteral(),
-								t.nullLiteral(),
-								t.identifier(member_decorators_id),
+			if(!t.isIdentifier(member.key)) return;
+			let key = t.cloneNode(member.key);
+			let keyAttr = t.stringLiteral(member.key.name);
+			after.push(
+				t.expressionStatement(t.callExpression(
+					t.identifier(esDecorate),
+					[
+						t.nullLiteral(),
+						t.nullLiteral(),
+						t.identifier(member_decorators_id),
+						t.objectExpression([
+							t.objectProperty(t.identifier("kind"), t.stringLiteral("field")),
+							t.objectProperty(t.identifier("name"), key),
+							t.objectProperty(t.identifier("static"), t.booleanLiteral(false)),
+							t.objectProperty(t.identifier("private"), t.booleanLiteral(false)),
+							t.objectProperty(
+								t.identifier("access"),
 								t.objectExpression([
-									t.objectProperty(t.identifier("kind"), t.stringLiteral("field")),
-									t.objectProperty(t.identifier("name"), key),
-									t.objectProperty(t.identifier("static"), t.booleanLiteral(false)),
-									t.objectProperty(t.identifier("private"), t.booleanLiteral(false)),
 									t.objectProperty(
-										t.identifier("access"),
-										t.objectExpression([
-											t.objectProperty(
-												t.identifier("has"),
-												t.arrowFunctionExpression([t.identifier("obj")], t.binaryExpression("in", keyAttr, t.identifier("obj")))
-											),
-											t.objectProperty(
-												t.identifier("get"),
-												t.arrowFunctionExpression([t.identifier("obj")], t.memberExpression(t.identifier("obj"), key))
-											),
-											t.objectProperty(
-												t.identifier("set"),
-												t.arrowFunctionExpression([t.identifier("obj"), t.identifier("value")], t.blockStatement([
-													t.expressionStatement(
-														t.assignmentExpression("=", t.memberExpression(t.identifier("obj"), key), t.identifier("value"))
-													)
-												]))
-											)
-										])
+										t.identifier("has"),
+										t.arrowFunctionExpression([t.identifier("obj")], t.binaryExpression("in", keyAttr, t.identifier("obj")))
 									),
-									...metadata !== false ?
-										[t.objectProperty(t.identifier("metadata"), t.identifier(metadataId))] :
-										[]
-								]),
-								t.identifier(member_initializers_id),
-								t.identifier(member_extraInitializers_id)
-							]
-						))
-					);
-				}
-			}
+									t.objectProperty(
+										t.identifier("get"),
+										t.arrowFunctionExpression([t.identifier("obj")], t.memberExpression(t.identifier("obj"), key))
+									),
+									t.objectProperty(
+										t.identifier("set"),
+										t.arrowFunctionExpression([t.identifier("obj"), t.identifier("value")], t.blockStatement([
+											t.expressionStatement(
+												t.assignmentExpression("=", t.memberExpression(t.identifier("obj"), key), t.identifier("value"))
+											)
+										]))
+									)
+								])
+							),
+							...metadata !== false ?
+								[t.objectProperty(t.identifier("metadata"), t.identifier(metadataId))] :
+								[]
+						]),
+						t.identifier(member_initializers_id),
+						t.identifier(member_extraInitializers_id)
+					]
+				))
+			);
 		}
 	});
 	if(decorators) {
@@ -320,22 +406,33 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 		);
 	}
 	var initializers: t.Statement[] = [];
+	if(instanceExtraInitializers_id) {
+		initializers.push(
+			t.expressionStatement(
+				t.callExpression(t.identifier(runInitializers), [
+					t.thisExpression(),
+					t.identifier(instanceExtraInitializers_id)
+				])
+			)
+		);
+	}
 	node.body.body.forEach((member, index, array) => {
 		let member_initializers_id: string = member_initializers_ids[index];
 		let member_extraInitializers_id: string = member_extraInitializers_ids[index];
-		if(t.isClassProperty(member)) {
+		if(t.isClassMethod(member)) {
+			member.decorators = null;
+		} else if(t.isClassProperty(member)) {
 			if(member.static) return;
 			if(member.computed) return;
+			if(!t.isIdentifier(member.key)) return;
 			let decorators = member.decorators || [];
 			member.decorators = null;
+			if(!t.isIdentifier(member.key)) return;
 			let key = t.cloneNode(member.key);
 			let value = t.cloneNode(member.value);
-			let keyId: string;
-			if(t.isIdentifier(member.key)) {
-				keyId = member.key.name;
-			}
+			let keyId = member.key.name;
 			if(decorators.length === 0) {
-				if(useDefineForClassFields && keyId) {
+				if(useDefineForClassFields) {
 					initializers.push(
 						t.expressionStatement(
 							t.callExpression(
@@ -366,7 +463,7 @@ function decoratedClass(path: NodePath<any>, node: t.ClassDeclaration, classId: 
 				}
 				return;
 			}
-			if(useDefineForClassFields && keyId) {
+			if(useDefineForClassFields) {
 				initializers.push(
 					t.expressionStatement(
 						t.callExpression(

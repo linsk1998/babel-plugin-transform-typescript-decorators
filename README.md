@@ -2,6 +2,21 @@ Babel legacy decorators is diffrent from typescript experimental decorators.
 
 This plugin transform decorators to typescript style.
 
+## Use
+
+```json
+{
+	"pligins":[
+		[
+			"babel-plugin-transform-typescript-decorators",
+			{
+				"experimentalDecorators": true
+			}
+		]
+	]
+}
+```
+
 ## Before
 
 ```javascript

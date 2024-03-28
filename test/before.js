@@ -23,4 +23,10 @@ class Cat {
 	@PropDe
 	propb;
 	propc;
+	@MethodDe
+	mob() { }
+	@AccDe
+	get aaa() { return 1; }
+	@AccDe
+	set aaa(v) { }
 }
