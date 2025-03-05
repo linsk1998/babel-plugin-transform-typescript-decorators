@@ -1,3 +1,9 @@
+# babel-plugin-transform-typescript-decorators
+
+[![npm version](https://img.shields.io/npm/v/babel-plugin-transform-typescript-decorators.svg)](https://www.npmjs.com/package/babel-plugin-transform-typescript-decorators)
+[![Build Status](https://github.com/linsk1998/babel-plugin-transform-typescript-decorators/workflows/CI/badge.svg)](https://github.com/linsk1998/babel-plugin-transform-typescript-decorators/actions)
+[![License](https://img.shields.io/npm/l/babel-plugin-transform-typescript-decorators.svg)](https://github.com/linsk1998/babel-plugin-transform-typescript-decorators/blob/main/LICENSE)
+
 Babel legacy decorators is diffrent from typescript experimental decorators.
 
 This plugin transform decorators to typescript style.
