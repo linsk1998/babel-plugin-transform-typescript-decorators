@@ -1,6 +1,6 @@
 {
 	"name": "babel-plugin-transform-typescript-decorators",
-	"version": "0.1.1",
+	"version": "0.2.1",
 	"description": "Compatible typescript decorators (with parameter decorators).",
 	"main": "dist/index.js",
 	"scripts": {

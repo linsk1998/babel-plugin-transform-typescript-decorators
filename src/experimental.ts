@@ -1,4 +1,4 @@
-import { NodePath, PluginObj, template, types as t } from "@babel/core";
+import { NodePath, PluginObj, types as t } from "@babel/core";
 import { BabelAPI } from "@babel/helper-plugin-utils";
 
 function hasDecorators(node: t.ClassDeclaration): 0 | 1 | 2 {
