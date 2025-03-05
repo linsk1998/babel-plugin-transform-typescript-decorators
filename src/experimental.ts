@@ -1,44 +1,6 @@
 import { NodePath, PluginObj, template, types as t } from "@babel/core";
 import { BabelAPI } from "@babel/helper-plugin-utils";
 
-/** 辅助函数：查找是否已经存在对应的import声明 */
-function findImportDeclaration(path: NodePath<t.Program>, functionName: string, pkg: string): string {
-	for(let statement of path.node.body) {
-		if(t.isImportDeclaration(statement) && statement.source.value === pkg) {
-			for(let specifier of statement.specifiers) {
-				if(t.isImportSpecifier(specifier)) {
-					let imported = specifier.imported;
-					if(t.isIdentifier(imported) && imported.name === functionName) {
-						return specifier.local.name;
-					}
-				}
-			}
-		}
-	}
-}
-
-function addTsHelper(path: NodePath<any>, functionName: string): string {
-	let root: NodePath<t.Program> = path as any;
-	let parentPath = path;
-	do {
-		root = parentPath;
-		parentPath = root.parentPath;
-	} while(parentPath);
-	let decorateName = findImportDeclaration(root, functionName, "tslib");
-	if(!decorateName) {
-		// 如果没有，则添加import声明
-		decorateName = functionName;
-		let binding = path.scope.getBinding(decorateName);
-		if(binding) {
-			decorateName = path.scope.generateUid(functionName);
-		}
-		const importSpecifier = t.importSpecifier(t.identifier(decorateName), t.identifier(functionName));
-		const importDeclaration = t.importDeclaration([importSpecifier], t.stringLiteral("tslib"));
-		root.node.body.unshift(importDeclaration);
-	}
-	return decorateName;
-}
-
 function hasDecorators(node: t.ClassDeclaration): 0 | 1 | 2 {
 	var hasDec = false, hasParamDec = false;
 	if(node.decorators && node.decorators.length) {
@@ -187,6 +149,24 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 	options.legacy = true;
 	options.version = "legacy";
 
+	const importCache = new Map<string, Map<string, string>>();
+
+	function addTsHelper(path: NodePath, name: string): string {
+		const fileKey = this.file.opts.filename;
+		let map = importCache.get(fileKey);
+		if(!map) {
+			map = new Map();
+			importCache.set(fileKey, map);
+		}
+		let uid = name;
+		let binding = path.scope.getBinding(name);
+		if(binding) {
+			uid = path.scope.generateUid(name);
+		}
+		map.set(uid, name);
+		return uid;
+	}
+
 	return {
 		name: "typescript-experimental-decorators",
 		manipulateOptions({ generatorOpts }, parserOpts) {
@@ -196,16 +176,33 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 			parserOpts.plugins.push("decorators-legacy");
 		},
 		visitor: {
+			Program: {
+				exit(path) {
+					const fileKey = this.file.opts.filename;
+					if(importCache.has(fileKey)) {
+						let map = importCache.get(fileKey);
+						importCache.delete(fileKey);
+						const importNode = t.importDeclaration(
+							Array.from(map).map(
+								([uid, name]) => t.importSpecifier(t.identifier(uid), t.identifier(name))
+							),
+							t.stringLiteral("tslib")
+						);
+
+						path.unshiftContainer('body', importNode);
+					}
+				}
+			},
 			ExportDefaultDeclaration(path) {
-				var { node, scope } = path;
-				var declaration = node.declaration;
+				let { node } = path;
+				let declaration = node.declaration;
 				if(t.isClassDeclaration(declaration)) {
 					let r = hasDecorators(declaration);
 					if(!r) {
 						return;
 					}
-					const decorateName = addTsHelper(path, "__decorate");
-					const paramDecorateName = r === 2 ? addTsHelper(path, "__param") : null;
+					const decorateName = addTsHelper.call(this, path, "__decorate");
+					const paramDecorateName = r === 2 ? addTsHelper.call(this, path, "__param") : null;
 
 					let className: string;
 					let id = declaration.id;
@@ -231,15 +228,15 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 				}
 			},
 			ExportNamedDeclaration(path) {
-				var { node, scope } = path;
-				var declaration = node.declaration;
+				let { node } = path;
+				let declaration = node.declaration;
 				if(t.isClassDeclaration(declaration)) {
 					let r = hasDecorators(declaration);
 					if(!r) {
 						return;
 					}
-					const decorateName = addTsHelper(path, "__decorate");
-					const paramDecorateName = r === 2 ? addTsHelper(path, "__param") : null;
+					const decorateName = addTsHelper.call(this, path, "__decorate");
+					const paramDecorateName = r === 2 ? addTsHelper.call(this, path, "__param") : null;
 
 					let className = declaration.id.name;
 					path.replaceWithMultiple([
@@ -259,18 +256,15 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 				}
 			},
 			ClassDeclaration(path) {
-				var { node, scope } = path;
+				let { node } = path;
 				let r = hasDecorators(node);
 				if(!r) {
 					return;
 				}
-				const decorateName = addTsHelper(path, "__decorate");
-				const paramDecorateName = r === 2 ? addTsHelper(path, "__param") : null;
+				const decorateName = addTsHelper.call(this, path, "__decorate");
+				const paramDecorateName = r === 2 ? addTsHelper.call(this, path, "__param") : null;
 
-				path.replaceWithMultiple([
-					node,
-					...decoratedClass(node, node.id.name, decorateName, paramDecorateName)
-				]);
+				path.insertAfter(decoratedClass(node, node.id.name, decorateName, paramDecorateName));
 			}
 		},
 	};
