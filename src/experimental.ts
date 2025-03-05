@@ -8,7 +8,7 @@ function hasDecorators(node: t.ClassDeclaration): 0 | 1 | 2 {
 	}
 	var body = node.body.body;
 	body.some(node => {
-		if(t.isClassProperty(node)) {
+		if(t.isClassProperty(node) || t.isAccessor(node)) {
 			if(!hasDec && node.decorators?.length) {
 				hasDec = true;
 			}
@@ -28,7 +28,7 @@ function hasDecorators(node: t.ClassDeclaration): 0 | 1 | 2 {
 	return hasParamDec ? 2 : (hasDec ? 1 : 0);
 }
 
-function decoratedProperty(node: t.ClassProperty, className: string, decorateName: string) {
+function decoratedProperty(node: t.ClassProperty | t.ClassAccessorProperty, className: string, decorateName: string) {
 	let key = node.key;
 	if(!t.isIdentifier(key)) return;
 
@@ -93,7 +93,7 @@ function decoratedClass(node: t.ClassDeclaration, className: string, decorateNam
 	var r: t.ExpressionStatement[] = [];
 
 	node.body.body.forEach((member) => {
-		if(t.isClassProperty(member)) {
+		if(t.isClassProperty(member) || t.isAccessor(member)) {
 			if(!member.static && !member.computed) {
 				let statement = decoratedProperty(member, className, decorateName);
 				if(statement) {
@@ -108,11 +108,11 @@ function decoratedClass(node: t.ClassDeclaration, className: string, decorateNam
 				}
 			}
 		} else {
-			// what is t.ClassAccessorProperty? is it ClassMethod?
+
 		}
 	});
 	node.body.body.forEach((member) => {
-		if(t.isClassProperty(member)) {
+		if(t.isClassProperty(member) || t.isAccessor(member)) {
 			if(member.static && !member.computed) {
 				let statement = decoratedProperty(member, className, decorateName);
 				if(statement) {
@@ -128,7 +128,7 @@ function decoratedClass(node: t.ClassDeclaration, className: string, decorateNam
 			}
 		}
 	});
-	if(decorators) {
+	if(decorators && decorators.length) {
 		r.push(
 			t.expressionStatement(t.assignmentExpression(
 				"=",
@@ -173,7 +173,7 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 			generatorOpts.decoratorsBeforeExport = true;
 			generatorOpts.legacy = true;
 			generatorOpts.version = "legacy";
-			parserOpts.plugins.push("decorators-legacy");
+			parserOpts.plugins.push("decorators-legacy", "decoratorAutoAccessors");
 		},
 		visitor: {
 			Program: {
@@ -223,7 +223,7 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 							)]
 						),
 						...decoratedClass(declaration, className, decorateName, paramDecorateName),
-						t.exportNamedDeclaration(null, [t.exportSpecifier(t.identifier(className), t.identifier(className))])
+						t.exportDefaultDeclaration(t.identifier(className))
 					]);
 				}
 			},

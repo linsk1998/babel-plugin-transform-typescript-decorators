@@ -4,7 +4,7 @@
 	"description": "Compatible typescript decorators (with parameter decorators).",
 	"main": "dist/index.js",
 	"scripts": {
-		"watch": "tsc",
+		"build": "tsc",
 		"test": "mocha tests/**/*.test.js --require ts-node/register"
 	},
 	"keywords": [

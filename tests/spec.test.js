@@ -27,4 +27,10 @@ describe('experimental', function() {
 		"experimentalDecorators": true
 	};
 	test('class', options);
+	test('property', options);
+	test('accessorProperty', options);
+	test('method', options);
+	test('accessorMethod', options);
+	test('scope', options);
+	test('scope2', options);
 });

@@ -1,7 +1,3 @@
-function ClsDec(Class) {
-
-}
-
 @ClsDec
 class ClsDecl {
 
