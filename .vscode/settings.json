@@ -18,5 +18,6 @@
 	"typescript.format.semicolons": "insert",
 	"typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
 	"typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": false,
-	"json.format.keepLines": true
+	"json.format.keepLines": true,
+	"typescript.tsdk": "node_modules/typescript/lib"
 }
