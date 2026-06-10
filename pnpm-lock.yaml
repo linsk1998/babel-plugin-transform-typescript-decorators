@@ -8,13 +8,13 @@ importers:
 
   .:
     dependencies:
-      '@babel/core':
-        specifier: ^7.18.13
-        version: 7.26.8
       '@babel/helper-plugin-utils':
         specifier: ^7.10.1
         version: 7.26.5
     devDependencies:
+      '@babel/core':
+        specifier: ^7.18.13
+        version: 7.26.8
       '@babel/helper-plugin-test-runner':
         specifier: ~7.10.1
         version: 7.10.4

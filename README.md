@@ -12,7 +12,7 @@ This plugin transform decorators to typescript style.
 
 ```json
 {
-	"pligins":[
+	"plugins":[
 		[
 			"babel-plugin-transform-typescript-decorators",
 			{

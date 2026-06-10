@@ -1,4 +1,4 @@
-import { NodePath, PluginObj, types as t } from "@babel/core";
+import { NodePath, PluginObj, PluginPass, types as t } from "@babel/core";
 import { BabelAPI } from "@babel/helper-plugin-utils";
 
 function hasDecorators(node: t.ClassDeclaration): 0 | 1 | 2 {
@@ -151,7 +151,7 @@ export = function(api: BabelAPI, options: Record<string, any>): PluginObj {
 
 	const importCache = new Map<string, Map<string, string>>();
 
-	function addTsHelper(path: NodePath, name: string): string {
+	function addTsHelper(this: PluginPass, path: NodePath, name: string): string {
 		const fileKey = this.file.opts.filename;
 		let map = importCache.get(fileKey);
 		if(!map) {

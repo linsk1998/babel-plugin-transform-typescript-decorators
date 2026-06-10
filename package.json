@@ -1,6 +1,6 @@
 {
 	"name": "babel-plugin-transform-typescript-decorators",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"description": "Compatible typescript decorators (with parameter decorators).",
 	"main": "dist/index.js",
 	"scripts": {
@@ -29,6 +29,7 @@
 		"dist"
 	],
 	"devDependencies": {
+		"@babel/core": "^7.18.13",
 		"@babel/helper-plugin-test-runner": "~7.10.1",
 		"@types/babel__core": "~7.1.19",
 		"@types/babel__helper-plugin-utils": "~7.10.0",
@@ -40,7 +41,10 @@
 		"typescript": "~4.3.0"
 	},
 	"dependencies": {
-		"@babel/core": "^7.18.13",
 		"@babel/helper-plugin-utils": "^7.10.1"
+	},
+	"peerDependencies": {
+		"@babel/core": "^7.0.0",
+		"tslib": "^2.0.0"
 	}
 }
