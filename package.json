@@ -28,6 +28,10 @@
 	"files": [
 		"dist"
 	],
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
 	"devDependencies": {
 		"@babel/core": "^7.18.13",
 		"@babel/helper-plugin-test-runner": "~7.10.1",
